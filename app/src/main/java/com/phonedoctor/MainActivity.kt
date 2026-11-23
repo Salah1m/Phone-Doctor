@@ -2,9 +2,13 @@ package com.phonedoctor
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
+import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Bundle
 import android.os.StatFs
@@ -15,6 +19,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -22,6 +27,20 @@ class MainActivity : Activity() {
     private lateinit var details: TextView
     private lateinit var phoneInfo: LinearLayout
     private lateinit var connectedInfo: LinearLayout
+    private val usbPermissionAction = "com.phonedoctor.USB_PERMISSION"
+    private val usbPermissionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != usbPermissionAction) return
+            val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+            status.text = if (granted) "تم منح إذن USB لهذا التطبيق" else "لم يتم منح إذن USB"
+            Toast.makeText(
+                this@MainActivity,
+                if (granted) "تم منح إذن USB. سنعيد فحص الجهاز." else "لم يتم منح إذن USB.",
+                Toast.LENGTH_SHORT
+            ).show()
+            scanUsbDevices()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +125,21 @@ class MainActivity : Activity() {
         setContentView(ScrollView(this).apply { addView(root) })
         showPhoneInfo()
         showNoConnectedDevice()
+        val permissionFilter = IntentFilter(usbPermissionAction)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(usbPermissionReceiver, permissionFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(usbPermissionReceiver, permissionFilter)
+        }
+    }
+
+    override fun onDestroy() {
+        try {
+            unregisterReceiver(usbPermissionReceiver)
+        } catch (_: IllegalArgumentException) {
+        }
+        super.onDestroy()
     }
 
     private fun sectionTitle(value: String): TextView = TextView(this).apply {
@@ -282,7 +316,7 @@ class MainActivity : Activity() {
         1 -> "صوت"
         2 -> "اتصالات"
         3 -> "واجهة بشرية HID"
-        6 -> "كاميرا / صورة"
+        6 -> "نقل صور PTP (Still Image)"
         8 -> "تخزين USB"
         9 -> "موزّع USB Hub"
         10 -> "بيانات CDC"
@@ -291,6 +325,16 @@ class MainActivity : Activity() {
         224 -> "لاسلكي"
         255 -> "خاص بالشركة المصنّعة"
         else -> "غير معروف"
+    }
+
+
+    private fun requestUsbPermission(manager: UsbManager, device: UsbDevice) {
+        val intent = Intent(usbPermissionAction).setPackage(packageName)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
+        val permissionIntent = PendingIntent.getBroadcast(this, device.deviceId, intent, flags)
+        manager.requestPermission(device, permissionIntent)
+        status.text = "بانتظار موافقة إذن USB على هذا الهاتف"
     }
 
     private fun scanUsbDevices() {
@@ -325,6 +369,22 @@ class MainActivity : Activity() {
             addInfoRow(card, "فئة الجهاز", "${device.deviceClass} — ${usbClassName(device.deviceClass)}")
             addInfoRow(card, "عدد الواجهات", device.interfaceCount.toString())
             addInfoRow(card, "إذن USB", if (manager.hasPermission(device)) "ممنوح" else "غير ممنوح")
+
+            if (!manager.hasPermission(device)) {
+                val permissionButton = Button(this).apply {
+                    text = "طلب إذن USB لهذا الجهاز"
+                    setOnClickListener { requestUsbPermission(manager, device) }
+                }
+                card.addView(permissionButton)
+                val permissionNote = TextView(this).apply {
+                    text = "هذا الإذن يسمح للتطبيق بفحص واجهة USB فقط. لا يفتح قفل الهاتف الآخر ولا يعرض شاشته."
+                    textSize = 12f
+                    textDirection = View.TEXT_DIRECTION_RTL
+                    setTextColor(0xFF8A3B12.toInt())
+                    setPadding(4, 4, 4, 8)
+                }
+                card.addView(permissionNote)
+            }
 
             val interfaceText = (0 until device.interfaceCount).joinToString("\n") { i ->
                 val usbInterface = device.getInterface(i)
