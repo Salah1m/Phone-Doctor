@@ -25,5 +25,4 @@ android {
 }
 
 dependencies {
-    implementation("com.flyfishxu:kadb-android-debug:1.3.0")
 }
