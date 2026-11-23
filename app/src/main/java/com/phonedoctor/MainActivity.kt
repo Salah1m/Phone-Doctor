@@ -276,6 +276,23 @@ class MainActivity : Activity() {
         connectedInfo.addView(card)
     }
 
+
+    private fun usbClassName(value: Int): String = when (value) {
+        0 -> "محدد على مستوى الواجهات"
+        1 -> "صوت"
+        2 -> "اتصالات"
+        3 -> "واجهة بشرية HID"
+        6 -> "كاميرا / صورة"
+        8 -> "تخزين USB"
+        9 -> "موزّع USB Hub"
+        10 -> "بيانات CDC"
+        11 -> "بطاقة ذكية"
+        14 -> "فيديو"
+        224 -> "لاسلكي"
+        255 -> "خاص بالشركة المصنّعة"
+        else -> "غير معروف"
+    }
+
     private fun scanUsbDevices() {
         val manager = getSystemService(USB_SERVICE) as UsbManager
         val devices = manager.deviceList.values.toList()
@@ -283,7 +300,7 @@ class MainActivity : Activity() {
         status.text = if (devices.isEmpty()) {
             "لم يتم اكتشاف جهاز USB"
         } else {
-            "تم اكتشاف \${devices.size} جهاز USB"
+            "تم اكتشاف ${devices.size} جهاز USB"
         }
         details.text = if (devices.isEmpty()) {
             "لم يظهر جهاز في قائمة USB Host. تأكد من استخدام كابل يدعم نقل البيانات، وأن الهاتف الآخر يسمح باتصال USB."
@@ -299,19 +316,19 @@ class MainActivity : Activity() {
 
         devices.forEachIndexed { index, device ->
             val card = makeCard()
-            card.addView(sectionTitle("الجهاز المتصل رقم \${index + 1}"))
+            card.addView(sectionTitle("الجهاز المتصل رقم ${index + 1}"))
             addInfoRow(card, "اسم USB", device.deviceName)
             addInfoRow(card, "الشركة المصنّعة", device.manufacturerName ?: "غير متاحة")
             addInfoRow(card, "اسم المنتج", device.productName ?: "غير متاح")
             addInfoRow(card, "Vendor ID", device.vendorId.toString())
             addInfoRow(card, "Product ID", device.productId.toString())
-            addInfoRow(card, "فئة الجهاز", device.deviceClass.toString())
+            addInfoRow(card, "فئة الجهاز", "${device.deviceClass} — ${usbClassName(device.deviceClass)}")
             addInfoRow(card, "عدد الواجهات", device.interfaceCount.toString())
             addInfoRow(card, "إذن USB", if (manager.hasPermission(device)) "ممنوح" else "غير ممنوح")
 
             val interfaceText = (0 until device.interfaceCount).joinToString("\n") { i ->
                 val usbInterface = device.getInterface(i)
-                "واجهة \${i + 1}: Class \${usbInterface.interfaceClass}, Subclass \${usbInterface.interfaceSubclass}, Protocol \${usbInterface.interfaceProtocol}"
+                "واجهة ${i + 1}: ${usbClassName(usbInterface.interfaceClass)} (Class ${usbInterface.interfaceClass}), Subclass ${usbInterface.interfaceSubclass}, Protocol ${usbInterface.interfaceProtocol}"
             }
             if (interfaceText.isNotEmpty()) {
                 val interfaces = TextView(this).apply {
