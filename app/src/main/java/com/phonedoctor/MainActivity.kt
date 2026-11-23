@@ -11,6 +11,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import java.util.Locale
@@ -18,17 +19,16 @@ import java.util.Locale
 class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var details: TextView
-    private lateinit var capability: TextView
-    private lateinit var phoneInfo: TextView
+    private lateinit var phoneInfo: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 36, 28, 28)
+            setPadding(24, 30, 24, 28)
             gravity = Gravity.CENTER_HORIZONTAL
-            setBackgroundColor(0xFFF4F6FA.toInt())
+            setBackgroundColor(0xFFF2F5FA.toInt())
         }
 
         val title = TextView(this).apply {
@@ -37,45 +37,35 @@ class MainActivity : Activity() {
             setTextColor(0xFF14213D.toInt())
             gravity = Gravity.CENTER
         }
-        capability = TextView(this).apply {
-            textSize = 16f
-            setPadding(0, 24, 0, 8)
-            setTextColor(0xFF14213D.toInt())
-            gravity = Gravity.CENTER
+        val capability = TextView(this).apply {
             text = getUsbHostCapabilityText()
+            textSize = 15f
+            setPadding(0, 16, 0, 8)
+            setTextColor(0xFF245B86.toInt())
+            gravity = Gravity.CENTER
         }
         status = TextView(this).apply {
             text = "جاهز لفحص اتصال USB"
             textSize = 18f
-            setPadding(0, 18, 0, 16)
+            setPadding(0, 12, 0, 12)
             setTextColor(0xFF14213D.toInt())
             gravity = Gravity.CENTER
         }
-
         val scanButton = Button(this).apply {
             text = "فحص أجهزة USB"
             setOnClickListener { scanUsbDevices() }
         }
-
         details = TextView(this).apply {
             text = "اضغط على الفحص لمعرفة ما إذا كان الهاتف متصلاً بجهاز USB."
-            textSize = 15f
+            textSize = 14f
             setTextColor(0xFF39465E.toInt())
-            setPadding(0, 18, 0, 20)
+            textDirection = View.TEXT_DIRECTION_RTL
+            setPadding(8, 12, 8, 12)
         }
 
-        val infoTitle = TextView(this).apply {
-            text = "معلومات هذا الهاتف"
-            textSize = 20f
-            setTextColor(0xFF14213D.toInt())
-            setPadding(0, 24, 0, 8)
-        }
-        phoneInfo = TextView(this).apply {
-            textDirection = View.TEXT_DIRECTION_RTL
-            textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-            textSize = 15f
-            setTextColor(0xFF39465E.toInt())
-            setPadding(0, 8, 0, 8)
+        val infoTitle = sectionTitle("معلومات هذا الهاتف")
+        phoneInfo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
         }
         val refreshInfoButton = Button(this).apply {
             text = "تحديث معلومات الهاتف"
@@ -90,9 +80,9 @@ class MainActivity : Activity() {
                 "2. اكتشاف الهاتف لا يثبت سلامة اللوحة الأم.\n" +
                 "3. ظهور الجهاز لا يعني أن ملفاته أصبحت متاحة؛ ذلك يعتمد على وضع USB وموافقة الهاتف الآخر.\n" +
                 "4. لا يمكن للتطبيق تجاوز قفل الشاشة أو موافقات Android الأمنية."
-            textSize = 14f
+            textSize = 13f
             setTextColor(0xFF8A3B12.toInt())
-            setPadding(0, 24, 0, 0)
+            setPadding(8, 18, 8, 8)
         }
 
         root.addView(title)
@@ -109,20 +99,66 @@ class MainActivity : Activity() {
         showPhoneInfo()
     }
 
+    private fun sectionTitle(value: String): TextView = TextView(this).apply {
+        text = value
+        textSize = 20f
+        setTextColor(0xFF14213D.toInt())
+        gravity = Gravity.END
+        textDirection = View.TEXT_DIRECTION_RTL
+        setPadding(4, 20, 4, 10)
+    }
+
+    private fun makeCard(): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(18, 14, 18, 14)
+        setBackgroundColor(0xFFFFFFFF.toInt())
+        elevation = 2f
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 12 }
+    }
+
+    private fun addInfoRow(card: LinearLayout, label: String, value: String) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 7, 0, 7)
+        }
+        val labelView = TextView(this).apply {
+            text = label
+            textSize = 14f
+            setTextColor(0xFF667085.toInt())
+            textDirection = View.TEXT_DIRECTION_RTL
+        }
+        val valueView = TextView(this).apply {
+            text = value
+            textSize = 14f
+            setTextColor(0xFF182230.toInt())
+            gravity = Gravity.END
+            textAlignment = View.TEXT_ALIGNMENT_VIEW_END
+        }
+        row.addView(labelView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(valueView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        card.addView(row)
+    }
+
     private fun getUsbHostCapabilityText(): String {
-        val supported = packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)
-        return if (supported) {
-            "قدرة USB Host: مدعومة على هذا الهاتف"
+        return if (packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)) {
+            "USB Host مدعوم على هذا الهاتف"
         } else {
-            "قدرة USB Host: لم يعلن النظام عن دعمها"
+            "هذا الهاتف لم يعلن عن دعم USB Host"
         }
     }
 
     private fun showPhoneInfo() {
+        phoneInfo.removeAllViews()
+
         val stat = StatFs(filesDir.absolutePath)
         val totalBytes = stat.totalBytes
         val availableBytes = stat.availableBytes
         val usedBytes = (totalBytes - availableBytes).coerceAtLeast(0L)
+        val usedPercent = if (totalBytes > 0) ((usedBytes * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
 
         val battery = registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val level = battery?.getIntExtra("level", -1) ?: -1
@@ -131,28 +167,56 @@ class MainActivity : Activity() {
         val temperature = battery?.getIntExtra("temperature", -1) ?: -1
         val chargingStatus = battery?.getIntExtra("status", -1) ?: -1
         val chargingText = when (chargingStatus) {
-            2, 5 -> "قيد الشحن أو متصل بالطاقة"
+            2, 5 -> "قيد الشحن"
             3 -> "غير مشحونة"
-            4 -> "لا يشحن حالياً"
+            4 -> "لا تشحن حالياً"
             else -> "غير معروف"
         }
         val tempText = if (temperature >= 0) String.format(Locale.getDefault(), "%.1f °C", temperature / 10f) else "غير متاحة"
 
-        phoneInfo.text =
-            "الشركة المصنّعة: ${Build.MANUFACTURER}\n" +
-            "العلامة التجارية: ${Build.BRAND}\n" +
-            "طراز الجهاز: ${Build.MODEL}\n" +
-            "إصدار Android: ${Build.VERSION.RELEASE}\n" +
-            "مستوى API: ${Build.VERSION.SDK_INT}\n" +
-            "تصحيح أمان Android: ${Build.VERSION.SECURITY_PATCH}\n\n" +
-            "مساحة التخزين الداخلية:\n" +
-            "الإجمالي: ${formatBytes(totalBytes)}\n" +
-            "المستخدم تقريباً: ${formatBytes(usedBytes)}\n" +
-            "المتاح: ${formatBytes(availableBytes)}\n\n" +
-            "البطارية:\n" +
-            "الشحن: ${if (batteryPercent >= 0) "$batteryPercent%" else "غير متاح"}\n" +
-            "الحالة: $chargingText\n" +
-            "درجة الحرارة: $tempText"
+        val deviceCard = makeCard()
+        deviceCard.addView(sectionTitle("📱 الجهاز والنظام"))
+        addInfoRow(deviceCard, "الشركة المصنّعة", Build.MANUFACTURER)
+        addInfoRow(deviceCard, "العلامة التجارية", Build.BRAND)
+        addInfoRow(deviceCard, "طراز الجهاز", Build.MODEL)
+        addInfoRow(deviceCard, "إصدار Android", Build.VERSION.RELEASE)
+        addInfoRow(deviceCard, "مستوى API", Build.VERSION.SDK_INT.toString())
+        addInfoRow(deviceCard, "تصحيح الأمان", Build.VERSION.SECURITY_PATCH)
+        phoneInfo.addView(deviceCard)
+
+        val storageCard = makeCard()
+        storageCard.addView(sectionTitle("💾 التخزين الداخلي"))
+        addInfoRow(storageCard, "الإجمالي", formatBytes(totalBytes))
+        addInfoRow(storageCard, "المستخدم تقريباً", formatBytes(usedBytes))
+        addInfoRow(storageCard, "المتاح", formatBytes(availableBytes))
+        val storageProgress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = usedPercent
+            setPadding(0, 10, 0, 4)
+        }
+        storageCard.addView(storageProgress)
+        val storageCaption = TextView(this).apply {
+            text = "المستخدم $usedPercent% من المساحة المحسوبة"
+            textSize = 12f
+            setTextColor(0xFF667085.toInt())
+            gravity = Gravity.END
+        }
+        storageCard.addView(storageCaption)
+        phoneInfo.addView(storageCard)
+
+        val batteryCard = makeCard()
+        batteryCard.addView(sectionTitle("🔋 البطارية"))
+        addInfoRow(batteryCard, "مستوى الشحن", if (batteryPercent >= 0) "$batteryPercent%" else "غير متاح")
+        addInfoRow(batteryCard, "الحالة", chargingText)
+        addInfoRow(batteryCard, "درجة الحرارة", tempText)
+        if (batteryPercent >= 0) {
+            batteryCard.addView(ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 100
+                progress = batteryPercent
+                setPadding(0, 10, 0, 4)
+            })
+        }
+        phoneInfo.addView(batteryCard)
     }
 
     private fun formatBytes(bytes: Long): String {
