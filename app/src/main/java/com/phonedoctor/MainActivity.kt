@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.StatFs
 import android.view.Gravity
+import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -70,6 +71,8 @@ class MainActivity : Activity() {
             setPadding(0, 24, 0, 8)
         }
         phoneInfo = TextView(this).apply {
+            textDirection = View.TEXT_DIRECTION_RTL
+            textAlignment = View.TEXT_ALIGNMENT_VIEW_START
             textSize = 15f
             setTextColor(0xFF39465E.toInt())
             setPadding(0, 8, 0, 8)
@@ -80,10 +83,12 @@ class MainActivity : Activity() {
         }
 
         val note = TextView(this).apply {
-            text = "ملاحظات مهمة:\\n" +
-                "1. دعم USB Host لا يعني أن كل هاتف آخر سيظهر كجهاز قابل للقراءة.\\n" +
-                "2. اكتشاف الهاتف لا يثبت سلامة اللوحة الأم.\\n" +
-                "3. ظهور الجهاز لا يعني أن ملفاته أصبحت متاحة؛ ذلك يعتمد على وضع USB وموافقة الهاتف الآخر.\\n" +
+            textDirection = View.TEXT_DIRECTION_RTL
+            textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+            text = "ملاحظات مهمة:\n" +
+                "1. دعم USB Host لا يعني أن كل هاتف آخر سيظهر كجهاز قابل للقراءة.\n" +
+                "2. اكتشاف الهاتف لا يثبت سلامة اللوحة الأم.\n" +
+                "3. ظهور الجهاز لا يعني أن ملفاته أصبحت متاحة؛ ذلك يعتمد على وضع USB وموافقة الهاتف الآخر.\n" +
                 "4. لا يمكن للتطبيق تجاوز قفل الشاشة أو موافقات Android الأمنية."
             textSize = 14f
             setTextColor(0xFF8A3B12.toInt())
@@ -134,19 +139,19 @@ class MainActivity : Activity() {
         val tempText = if (temperature >= 0) String.format(Locale.getDefault(), "%.1f °C", temperature / 10f) else "غير متاحة"
 
         phoneInfo.text =
-            "الشركة المصنّعة: ${Build.MANUFACTURER}\\n" +
-            "العلامة التجارية: ${Build.BRAND}\\n" +
-            "طراز الجهاز: ${Build.MODEL}\\n" +
-            "إصدار Android: ${Build.VERSION.RELEASE}\\n" +
-            "مستوى API: ${Build.VERSION.SDK_INT}\\n" +
-            "تصحيح أمان Android: ${Build.VERSION.SECURITY_PATCH}\\n\\n" +
-            "مساحة التخزين الداخلية:\\n" +
-            "الإجمالي: ${formatBytes(totalBytes)}\\n" +
-            "المستخدم تقريباً: ${formatBytes(usedBytes)}\\n" +
-            "المتاح: ${formatBytes(availableBytes)}\\n\\n" +
-            "البطارية:\\n" +
-            "الشحن: ${if (batteryPercent >= 0) "$batteryPercent%" else "غير متاح"}\\n" +
-            "الحالة: $chargingText\\n" +
+            "الشركة المصنّعة: ${Build.MANUFACTURER}\n" +
+            "العلامة التجارية: ${Build.BRAND}\n" +
+            "طراز الجهاز: ${Build.MODEL}\n" +
+            "إصدار Android: ${Build.VERSION.RELEASE}\n" +
+            "مستوى API: ${Build.VERSION.SDK_INT}\n" +
+            "تصحيح أمان Android: ${Build.VERSION.SECURITY_PATCH}\n\n" +
+            "مساحة التخزين الداخلية:\n" +
+            "الإجمالي: ${formatBytes(totalBytes)}\n" +
+            "المستخدم تقريباً: ${formatBytes(usedBytes)}\n" +
+            "المتاح: ${formatBytes(availableBytes)}\n\n" +
+            "البطارية:\n" +
+            "الشحن: ${if (batteryPercent >= 0) "$batteryPercent%" else "غير متاح"}\n" +
+            "الحالة: $chargingText\n" +
             "درجة الحرارة: $tempText"
     }
 
@@ -174,20 +179,20 @@ class MainActivity : Activity() {
                 val interfaces = (0 until device.interfaceCount).map { interfaceIndex ->
                     val usbInterface = device.getInterface(interfaceIndex)
                     "واجهة ${interfaceIndex + 1}: Class ${usbInterface.interfaceClass}, Subclass ${usbInterface.interfaceSubclass}, Protocol ${usbInterface.interfaceProtocol}"
-                }.joinToString("\\n")
+                }.joinToString("\n")
 
-                (index + 1).toString() + ". معلومات الجهاز\\n" +
-                    "الشركة المصنّعة: " + manufacturer + "\\n" +
-                    "اسم المنتج: " + product + "\\n" +
-                    "اسم USB: " + device.deviceName + "\\n" +
-                    "Vendor ID: " + device.vendorId + "\\n" +
-                    "Product ID: " + device.productId + "\\n" +
-                    "فئة الجهاز: " + device.deviceClass + "\\n" +
-                    "عدد الواجهات: " + device.interfaceCount + "\\n" +
+                (index + 1).toString() + ". معلومات الجهاز\n" +
+                    "الشركة المصنّعة: " + manufacturer + "\n" +
+                    "اسم المنتج: " + product + "\n" +
+                    "اسم USB: " + device.deviceName + "\n" +
+                    "Vendor ID: " + device.vendorId + "\n" +
+                    "Product ID: " + device.productId + "\n" +
+                    "فئة الجهاز: " + device.deviceClass + "\n" +
+                    "عدد الواجهات: " + device.interfaceCount + "\n" +
                     "إذن الوصول: " + if (manager.hasPermission(device)) "ممنوح" else "غير ممنوح" +
-                    (if (interfaces.isNotEmpty()) "\\n" + interfaces else "") +
-                    "\\nإمكانية قراءة الملفات: تحتاج إلى اختبار وضع الاتصال وموافقة الهاتف الآخر."
-            }.joinToString("\\n\\n--------------------\\n\\n")
+                    (if (interfaces.isNotEmpty()) "\n" + interfaces else "") +
+                    "\nإمكانية قراءة الملفات: تحتاج إلى اختبار وضع الاتصال وموافقة الهاتف الآخر."
+            }.joinToString("\n\n--------------------\n\n")
         }
     }
 }
