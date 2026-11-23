@@ -21,6 +21,9 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import com.phonedoctor.adb.AdbUsbTransport
+import com.phonedoctor.adb.AdbIdentity
+import com.phonedoctor.adb.AdbHandshake
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -416,6 +419,36 @@ class MainActivity : Activity() {
                     usbInterface.interfaceProtocol == 0x01
             }
             addInfoRow(card, "واجهة ADB القياسية", if (hasAdbInterface) "مكتشفة — يلزم اختبار المصادقة" else "غير مكتشفة")
+
+            if (hasAdbInterface) {
+                val adbButton = Button(this).apply {
+                    text = "اختبار اتصال ADB"
+                    isEnabled = true
+                    setOnClickListener {
+                        if (!manager.hasPermission(device)) {
+                            requestUsbPermission(manager, device)
+                        } else {
+                            isEnabled = false
+                            text = "جارٍ اختبار اتصال ADB..."
+                            Thread {
+                                val result = try {
+                                    val transport = AdbUsbTransport.open(manager, device)
+                                    AdbHandshake(transport, AdbIdentity.loadOrCreate()).use { it.connect() }
+                                } catch (error: Exception) {
+                                    AdbHandshake.Result(false, error.message ?: "تعذر إكمال اتصال ADB")
+                                }
+                                runOnUiThread {
+                                    isEnabled = true
+                                    text = "إعادة اختبار اتصال ADB"
+                                    Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+                                    status.text = result.message
+                                }
+                            }.start()
+                        }
+                    }
+                }
+                card.addView(adbButton)
+            }
 
             val screenAssessment = TextView(this).apply {
                 val assessment = when {
