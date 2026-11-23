@@ -1,6 +1,7 @@
 package com.phonedoctor
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
@@ -211,6 +212,34 @@ class MainActivity : Activity() {
         }
         storageCard.addView(storageCaption)
         phoneInfo.addView(storageCard)
+
+        val activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+        val ramTotal = memoryInfo.totalMem
+        val ramAvailable = memoryInfo.availMem
+        val ramUsed = (ramTotal - ramAvailable).coerceAtLeast(0L)
+        val ramUsedPercent = if (ramTotal > 0L) ((ramUsed * 100L) / ramTotal).toInt().coerceIn(0, 100) else 0
+
+        val ramCard = makeCard()
+        ramCard.addView(sectionTitle("🧠 ذاكرة الوصول العشوائي RAM"))
+        addInfoRow(ramCard, "الإجمالي", formatBytes(ramTotal))
+        addInfoRow(ramCard, "المستخدم تقريباً", formatBytes(ramUsed))
+        addInfoRow(ramCard, "المتاح حالياً", formatBytes(ramAvailable))
+        ramCard.addView(ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = ramUsedPercent
+            setPadding(0, 10, 0, 4)
+        })
+        val ramCaption = TextView(this).apply {
+            text = "استخدام الذاكرة حالياً: $ramUsedPercent% — تتغير هذه القيمة حسب تشغيل التطبيقات"
+            textSize = 12f
+            setTextColor(0xFF667085.toInt())
+            gravity = Gravity.END
+            textDirection = View.TEXT_DIRECTION_RTL
+        }
+        ramCard.addView(ramCaption)
+        phoneInfo.addView(ramCard)
 
         val batteryCard = makeCard()
         batteryCard.addView(sectionTitle("🔋 البطارية"))
