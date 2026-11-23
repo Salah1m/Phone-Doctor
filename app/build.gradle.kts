@@ -23,3 +23,7 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    implementation("com.flyfishxu:kadb:2.1.5")
+}
