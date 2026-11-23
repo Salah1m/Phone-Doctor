@@ -3,6 +3,7 @@ package com.phonedoctor
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
@@ -36,18 +37,14 @@ class MainActivity : Activity() {
             setPadding(0, 24, 0, 8)
             setTextColor(0xFF14213D.toInt())
             text = getUsbHostCapabilityText()
+            gravity = Gravity.CENTER
         }
         status = TextView(this).apply {
             text = "جاهز لفحص اتصال USB"
             textSize = 18f
             setPadding(0, 18, 0, 16)
             setTextColor(0xFF14213D.toInt())
-        }
-        details = TextView(this).apply {
-            text = "عند توفر الكابل، صِل الهاتف الآخر بهذا الهاتف ثم اضغط على فحص الاتصال."
-            textSize = 15f
-            setTextColor(0xFF39465E.toInt())
-            setPadding(0, 8, 0, 20)
+            gravity = Gravity.CENTER
         }
 
         val scanButton = Button(this).apply {
@@ -55,8 +52,19 @@ class MainActivity : Activity() {
             setOnClickListener { scanUsbDevices() }
         }
 
+        details = TextView(this).apply {
+            text = "اضغط على الفحص لمعرفة ما إذا كان الهاتف متصلاً بجهاز USB."
+            textSize = 15f
+            setTextColor(0xFF39465E.toInt())
+            setPadding(0, 18, 0, 20)
+        }
+
         val note = TextView(this).apply {
-            text = "\nملاحظات مهمة:\n1. دعم USB Host لا يعني أن كل هاتف آخر سيظهر كجهاز قابل للقراءة.\n2. اكتشاف الهاتف لا يثبت سلامة اللوحة الأم.\n3. عرض الشاشة والتحكم يتطلبان دعماً وصلاحيات مناسبة على الهاتف المستهدف؛ لا يمكن للتطبيق تجاوز قفل الشاشة أو موافقات Android الأمنية."
+            text = "ملاحظات مهمة:\n" +
+                "1. دعم USB Host لا يعني أن كل هاتف آخر سيظهر كجهاز قابل للقراءة.\n" +
+                "2. اكتشاف الهاتف لا يثبت سلامة اللوحة الأم.\n" +
+                "3. ظهور الجهاز لا يعني أن ملفاته أصبحت متاحة؛ ذلك يعتمد على وضع USB وموافقة الهاتف الآخر.\n" +
+                "4. لا يمكن للتطبيق تجاوز قفل الشاشة أو موافقات Android الأمنية."
             textSize = 14f
             setTextColor(0xFF8A3B12.toInt())
             setPadding(0, 24, 0, 0)
@@ -88,19 +96,40 @@ class MainActivity : Activity() {
         status.text = if (devices.isEmpty()) {
             "لم يتم اكتشاف جهاز USB"
         } else {
-            "تم اكتشاف " + devices.size + " جهاز"
+            "تم اكتشاف ${devices.size} جهاز"
         }
 
         details.text = if (devices.isEmpty()) {
-            "لم يظهر أي جهاز في قائمة USB Host. عند التجربة، تأكد من كابل يدعم نقل البيانات، ومن توافق وضع USB بين الهاتفين. قد يحتاج الاتصال المباشر بين هاتفين إلى محول أو تغيير دور USB، حسب الجهاز."
+            "لم يظهر أي جهاز في قائمة USB Host. عند التجربة، استخدم كابلاً يدعم نقل البيانات، وتأكد من توافق وضع USB بين الهاتفين. قد يحتاج الاتصال المباشر إلى محول أو تغيير دور USB حسب الجهاز."
         } else {
             devices.mapIndexed { index, device ->
-                (index + 1).toString() + ". " + device.deviceName + "\n" +
+                val manufacturer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    device.manufacturerName ?: "غير متاح من الجهاز"
+                } else {
+                    "غير متاح في إصدار Android هذا"
+                }
+                val product = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    device.productName ?: "غير متاح من الجهاز"
+                } else {
+                    "غير متاح في إصدار Android هذا"
+                }
+                val interfaces = (0 until device.interfaceCount).map { interfaceIndex ->
+                    val usbInterface = device.getInterface(interfaceIndex)
+                    "واجهة ${interfaceIndex + 1}: Class ${usbInterface.interfaceClass}, Subclass ${usbInterface.interfaceSubclass}, Protocol ${usbInterface.interfaceProtocol}"
+                }.joinToString("\n")
+
+                (index + 1).toString() + ". معلومات الجهاز\n" +
+                    "الشركة المصنّعة: " + manufacturer + "\n" +
+                    "اسم المنتج: " + product + "\n" +
+                    "اسم USB: " + device.deviceName + "\n" +
                     "Vendor ID: " + device.vendorId + "\n" +
                     "Product ID: " + device.productId + "\n" +
-                    "Interfaces: " + device.interfaceCount + "\n" +
-                    "صلاحية الوصول: " + if (manager.hasPermission(device)) "ممنوحة" else "غير ممنوحة"
-            }.joinToString("\n\n")
+                    "فئة الجهاز: " + device.deviceClass + "\n" +
+                    "عدد الواجهات: " + device.interfaceCount + "\n" +
+                    "إذن الوصول: " + if (manager.hasPermission(device)) "ممنوح" else "غير ممنوح" +
+                    (if (interfaces.isNotEmpty()) "\n" + interfaces else "") +
+                    "\nإمكانية قراءة الملفات: تحتاج إلى اختبار وضع الاتصال وموافقة الهاتف الآخر."
+            }.joinToString("\n\n--------------------\n\n")
         }
     }
 }
