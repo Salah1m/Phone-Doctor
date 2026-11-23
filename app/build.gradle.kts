@@ -19,13 +19,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
 dependencies {
-    implementation("com.flyfishxu:kadb:2.1.5")
+    implementation("com.flyfishxu:kadb-android-debug:1.3.0")
 }
