@@ -21,6 +21,7 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import com.flyfishxu.kadb.usb.KadbUsb
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -416,6 +417,46 @@ class MainActivity : Activity() {
                     usbInterface.interfaceProtocol == 0x01
             }
             addInfoRow(card, "واجهة ADB القياسية", if (hasAdbInterface) "مكتشفة — يلزم اختبار المصادقة" else "غير مكتشفة")
+
+            val adbResult = TextView(this).apply {
+                text = if (hasAdbInterface) "لم يتم اختبار جلسة ADB بعد." else
+                    "لا يمكن بدء اتصال ADB عبر USB: الهاتف لا يعرض واجهة ADB القياسية حالياً."
+                textSize = 13f
+                textDirection = View.TEXT_DIRECTION_RTL
+                setTextColor(0xFF475467.toInt())
+                setPadding(4, 8, 4, 8)
+            }
+            card.addView(adbResult)
+
+            val adbButton = Button(this).apply {
+                text = "اختبار اتصال ADB المصرّح به"
+                isEnabled = hasAdbInterface && manager.hasPermission(device)
+                setOnClickListener {
+                    isEnabled = false
+                    adbResult.text = "جارٍ محاولة مصافحة ADB والتحقق من موافقة الهاتف..."
+                    Thread {
+                        try {
+                            val response = KadbUsb.create(this@MainActivity, device).use { adb ->
+                                adb.shell("getprop ro.product.model")
+                            }
+                            runOnUiThread {
+                                adbResult.text = if (response.exitCode == 0) {
+                                    "نجح اتصال ADB المصرّح به. طراز الهاتف: " + response.output.trim()
+                                } else {
+                                    "تم الاتصال، لكن أمر فحص الطراز أعاد رمز خروج " + response.exitCode + ": " + response.output
+                                }
+                                adbButton.isEnabled = true
+                            }
+                        } catch (error: Exception) {
+                            runOnUiThread {
+                                adbResult.text = "تعذر اتصال ADB: " + (error.message ?: error.javaClass.simpleName) + ". تأكد من تفعيل تصحيح USB وقبول مفتاح Phone Doctor على الهاتف المستهدف."
+                                adbButton.isEnabled = true
+                            }
+                        }
+                    }.start()
+                }
+            }
+            card.addView(adbButton)
 
             val screenAssessment = TextView(this).apply {
                 val assessment = when {
