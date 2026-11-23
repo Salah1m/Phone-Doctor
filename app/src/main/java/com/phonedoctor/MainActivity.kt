@@ -17,6 +17,8 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ImageView
+import android.graphics.BitmapFactory
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
@@ -24,6 +26,7 @@ import android.widget.Toast
 import com.phonedoctor.adb.AdbUsbTransport
 import com.phonedoctor.adb.AdbIdentity
 import com.phonedoctor.adb.AdbHandshake
+import com.phonedoctor.adb.AdbExecStream
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -431,15 +434,37 @@ class MainActivity : Activity() {
                             isEnabled = false
                             text = "جارٍ اختبار اتصال ADB..."
                             Thread {
+                                var transport: AdbUsbTransport? = null
+                                var screenshot: ByteArray? = null
                                 val result = try {
-                                    val transport = AdbUsbTransport.open(manager, device)
-                                    AdbHandshake(transport, AdbIdentity.loadOrCreate()).use { it.connect() }
+                                    transport = AdbUsbTransport.open(manager, device)
+                                    val handshake = AdbHandshake(transport, AdbIdentity.loadOrCreate())
+                                    val auth = handshake.connect()
+                                    if (auth.authorized) {
+                                        screenshot = AdbExecStream(transport).captureScreenPng()
+                                        AdbHandshake.Result(true, "تم الاتصال بنجاح واستلام صورة الشاشة")
+                                    } else auth
                                 } catch (error: Exception) {
                                     AdbHandshake.Result(false, error.message ?: "تعذر إكمال اتصال ADB")
+                                } finally {
+                                    try { transport?.close() } catch (_: Exception) { }
                                 }
+                                val png = screenshot
                                 runOnUiThread {
                                     isEnabled = true
                                     text = "إعادة اختبار اتصال ADB"
+                                    if (png != null) {
+                                        val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
+                                        if (bitmap != null) {
+                                            val preview = ImageView(this@MainActivity).apply {
+                                                setImageBitmap(bitmap)
+                                                adjustViewBounds = true
+                                                contentDescription = "صورة شاشة الهاتف المتصل"
+                                                setPadding(0, 12, 0, 12)
+                                            }
+                                            card.addView(preview)
+                                        }
+                                    }
                                     Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
                                     status.text = result.message
                                 }
