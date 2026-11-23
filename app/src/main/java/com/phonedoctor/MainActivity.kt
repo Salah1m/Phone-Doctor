@@ -402,6 +402,26 @@ class MainActivity : Activity() {
                 card.addView(interfaces)
             }
 
+            val hasPtp = (0 until device.interfaceCount).any {
+                device.getInterface(it).interfaceClass == 6
+            }
+            val hasVideo = (0 until device.interfaceCount).any {
+                device.getInterface(it).interfaceClass == 14
+            }
+            val screenAssessment = TextView(this).apply {
+                val assessment = when {
+                    hasVideo -> "ظهرت واجهة USB مصنفة كفيديو. هذا مؤشر يستحق الفحص، لكنه لا يثبت أنها تخرج صورة الشاشة؛ نحتاج إلى اختبار بروتوكولها."
+                    hasPtp -> "الهاتف يعرض حالياً واجهة PTP لنقل الصور. هذه الواجهة لا تنقل بث الشاشة، ولم تظهر في الفحص الحالي واجهة فيديو أو ADB معروفة."
+                    else -> "لم تظهر في الواجهات الحالية قناة معروفة لبث الشاشة. هذا لا يحسم قدرات الهاتف؛ قد تتطلب طريقة أخرى أو إعداداً مسبقاً."
+                }
+                text = "تقييم إمكانية الوصول إلى الشاشة:\\n$assessment\\n\\nالطرق التي يمكن فحصها لاحقاً: ADB إذا كان مفعّلاً ومصرّحاً به مسبقاً، تطبيق مساعد مثبت وموافق عليه على الهاتف المستهدف، أو إخراج فيديو عتادي إذا كان الطراز يدعمه. إذن USB الحالي لا يفتح الشاشة ولا يتجاوز القفل."
+                textSize = 13f
+                textDirection = View.TEXT_DIRECTION_RTL
+                setTextColor(0xFF245B86.toInt())
+                setPadding(4, 12, 4, 8)
+            }
+            card.addView(screenAssessment)
+
             val limitation = TextView(this).apply {
                 text = "ملاحظة: هذه بيانات تعريف USB فقط. لا تكشف وحدها طراز الهاتف الكامل أو إصدار Android أو البطارية أو الملفات. تتطلب هذه المعلومات بروتوكولاً مدعوماً وموافقة على الهاتف الآخر."
                 textSize = 13f
