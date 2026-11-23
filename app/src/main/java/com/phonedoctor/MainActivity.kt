@@ -408,13 +408,23 @@ class MainActivity : Activity() {
             val hasVideo = (0 until device.interfaceCount).any {
                 device.getInterface(it).interfaceClass == 14
             }
+            // Standard ADB USB interface descriptor: class 0xFF, subclass 0x42, protocol 0x01.
+            val hasAdbInterface = (0 until device.interfaceCount).any {
+                val usbInterface = device.getInterface(it)
+                usbInterface.interfaceClass == 0xFF &&
+                    usbInterface.interfaceSubclass == 0x42 &&
+                    usbInterface.interfaceProtocol == 0x01
+            }
+            addInfoRow(card, "واجهة ADB القياسية", if (hasAdbInterface) "مكتشفة — يلزم اختبار المصادقة" else "غير مكتشفة")
+
             val screenAssessment = TextView(this).apply {
                 val assessment = when {
-                    hasVideo -> "ظهرت واجهة USB مصنفة كفيديو. هذا مؤشر يستحق الفحص، لكنه لا يثبت أنها تخرج صورة الشاشة؛ نحتاج إلى اختبار بروتوكولها."
-                    hasPtp -> "الهاتف يعرض حالياً واجهة PTP لنقل الصور. هذه الواجهة لا تنقل بث الشاشة، ولم تظهر في الفحص الحالي واجهة فيديو أو ADB معروفة."
-                    else -> "لم تظهر في الواجهات الحالية قناة معروفة لبث الشاشة. هذا لا يحسم قدرات الهاتف؛ قد تتطلب طريقة أخرى أو إعداداً مسبقاً."
+                    hasAdbInterface -> "ظهرت واجهة USB تطابق وصف ADB القياسي. هذا لا يعني أن الاتصال مصادق عليه أو أن تصحيح USB مفعّل؛ يجب اختبار المصادقة بمفتاح موثوق."
+                    hasVideo -> "ظهرت واجهة USB مصنفة كفيديو. هذا لا يثبت أنها تخرج صورة الشاشة؛ يلزم اختبار بروتوكولها."
+                    hasPtp -> "الهاتف يعرض حالياً واجهة PTP لنقل الصور. هذه الواجهة لا تنقل بث الشاشة، ولم تظهر واجهة ADB القياسية أو واجهة فيديو في الفحص."
+                    else -> "لم تظهر واجهة ADB القياسية أو واجهة فيديو معروفة في الفحص الحالي. هذا لا يحسم كل طرق الوصول الممكنة."
                 }
-                text = "تقييم إمكانية الوصول إلى الشاشة:\\n$assessment\\n\\nالطرق التي يمكن فحصها لاحقاً: ADB إذا كان مفعّلاً ومصرّحاً به مسبقاً، تطبيق مساعد مثبت وموافق عليه على الهاتف المستهدف، أو إخراج فيديو عتادي إذا كان الطراز يدعمه. إذن USB الحالي لا يفتح الشاشة ولا يتجاوز القفل."
+                text = "تقييم إمكانية الوصول إلى الشاشة:\\n$assessment\\n\\nملاحظة ADB: لا يمكن استعماله إلا إذا كان تصحيح USB مفعّلاً على الهاتف المستهدف وقَبِل مفتاح هذا الجهاز مسبقاً.\\nملاحظة إخراج الفيديو: واجهات USB العادية لا تكشف بشكل موثوق دعم DisplayPort Alt Mode؛ يجب التحقق من مواصفات الطراز أو اختباره بمعدات مناسبة.\\nإذن USB الممنوح هنا لا يفتح قفل الهاتف ولا يتيح بث الشاشة تلقائياً."
                 textSize = 13f
                 textDirection = View.TEXT_DIRECTION_RTL
                 setTextColor(0xFF245B86.toInt())
